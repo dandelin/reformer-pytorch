@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 from reformer_pytorch.reformer_pytorch import Reformer, ReformerLM, LSHSelfAttention
 
+
 def pad_to_multiple(tensor, seqlen, multiple, dim=-1):
     m = seqlen / multiple
     if m.is_integer():
@@ -13,10 +14,13 @@ def pad_to_multiple(tensor, seqlen, multiple, dim=-1):
     pad_offset = (0,) * (-1 - dim) * 2
     return F.pad(tensor, (*pad_offset, 0, remainder), value=0)
 
+
 class Autopadder(nn.Module):
     def __init__(self, net):
         super().__init__()
-        assert isinstance(net, (LSHSelfAttention, Reformer, ReformerLM)), 'only modules LSHSelfAttention, Reformer, ReformerLM accepted'
+        assert isinstance(
+            net, (LSHSelfAttention, Reformer, ReformerLM)
+        ), "only modules LSHSelfAttention, Reformer, ReformerLM accepted"
         self.net = net
 
         reformer = net.reformer if isinstance(net, ReformerLM) else net
@@ -29,9 +33,9 @@ class Autopadder(nn.Module):
     def forward(self, x, **kwargs):
         b, t, m, device = *x.shape[:2], self.num_mem_kv, x.device
 
-        keys = kwargs.get('keys')
-        input_mask = kwargs.get('input_mask')
-        input_attn_mask = kwargs.get('input_attn_mask')
+        keys = kwargs.get("keys")
+        input_mask = kwargs.get("input_mask")
+        input_attn_mask = kwargs.get("input_attn_mask")
 
         k_len = 0 if keys is None else keys.shape[1]
         seqlen = t + m + k_len
@@ -43,7 +47,9 @@ class Autopadder(nn.Module):
             x = pad_to_multiple(x, seqlen, self.bucket_size * 2, dim=self.pad_dim)
 
             if input_mask is not None:
-                new_mask = F.pad(input_mask, (0, x.shape[1] - input_mask.shape[1]), value=False)
+                new_mask = F.pad(
+                    input_mask, (0, x.shape[1] - input_mask.shape[1]), value=False
+                )
                 kwargs.update(input_mask=new_mask)
 
             if input_attn_mask is not None:
